@@ -30,6 +30,7 @@ public class IdpConfiguration extends SharedConfiguration {
   private final String idpCertificate;
   private String spEntityId;
   private boolean signMessage;
+  private boolean signAssertion;
 
   @Autowired
   public IdpConfiguration(JKSKeyManager keyManager,
@@ -55,6 +56,7 @@ public class IdpConfiguration extends SharedConfiguration {
     setAuthenticationMethod(this.defaultAuthenticationMethod);
     setSpEntityId(null);
     setSignMessage(true);
+    setSignAssertion(true);
     setSignatureAlgorithm(getDefaultSignatureAlgorithm());
   }
 

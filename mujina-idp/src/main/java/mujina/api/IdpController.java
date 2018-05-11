@@ -94,6 +94,12 @@ public class IdpController extends SharedController {
     configuration().setSignMessage(!signMessage.equals("false"));
   }
 
+  @PutMapping("/signassertion")
+  public void setSignAssertion(@RequestBody String signAssertion) {
+    LOG.info("Request to set SignAssertion to {}", signAssertion);
+    configuration().setSignAssertion(!signAssertion.equals("false"));
+  }
+
   private IdpConfiguration configuration() {
     return IdpConfiguration.class.cast(super.configuration);
   }

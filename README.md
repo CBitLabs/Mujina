@@ -39,6 +39,7 @@ Features
   * ACS endpoint
   * signature Algorithm
   * whether the authnresponse message is signed
+  * whether the assertions are signed
   * what entityid to use for the SP in IDP initiated login
 
 - A SAML2-compliant Service Provider. The SP displays the attributes as these were received from an IdP. The REST api allows for the manipulation of:
@@ -68,6 +69,7 @@ The default Identity Provider configuration is as follows:
 * By default the ACS endpoint should be provided by the SP as an attribute in the AuthnRequest.
   If the ACS endpoint is set using the IdP api this is not necessary. Use of the api overrides values set in AuthnRequests
 * Messages from the IDP are signed by default but this can be changed
+* Assertions from the IDP are signed by default but this can be changed
 * FOr IDP initiated login, the SP entity id must be configured.
 
 The default Service Provider configuration is as follows:
@@ -364,7 +366,21 @@ curl -v -H "Accept: application/json" \
 ```
 
 This API is only available on the IDP and is only used if you do not want the IDP to sign
-the AuthnResponse message in the case of IDP initiated login.
+the AuthnResponse message. The default is to sign.
+
+
+Setting the Signed Assertions option
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "false" \
+        http://localhost:8080/api/signassertion
+```
+
+This API is only available on the IDP and is only used if you do not want the IDP to sign
+the assertions in the AuthnResponse message. The default is to sign.
 
 
 Setting the SSO Service URL

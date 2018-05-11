@@ -78,9 +78,9 @@ public class SsoController {
       messageContext.getRelayState());
 
     if (idpConfiguration.isSignMessage()) {
-      samlMessageHandler.sendAuthnResponse(principal, response);
+      samlMessageHandler.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
     } else {
-      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response);
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
     }
   }
 
@@ -98,9 +98,9 @@ public class SsoController {
       request.getParameter("relaystate"));
 
     if (idpConfiguration.isSignMessage()) {
-      samlMessageHandler.sendAuthnResponse(principal, response);
+      samlMessageHandler.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
     } else {
-      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response);
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
     }
   }
 
