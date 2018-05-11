@@ -38,10 +38,12 @@ Features
   * entityID
   * ACS endpoint
   * signature Algorithm
+  * whether the authnresponse message is signed
+  * what entityid to use for the SP in IDP initiated login
 
 - A SAML2-compliant Service Provider. The SP displays the attributes as these were received from an IdP. The REST api allows for the manipulation of:
   * entityID
-  * signing certificate  
+  * signing certificate
   * SSO Service URL
   * signature Algorithm
 
@@ -65,6 +67,8 @@ The default Identity Provider configuration is as follows:
 * There is a default certificate and private key available
 * By default the ACS endpoint should be provided by the SP as an attribute in the AuthnRequest.
   If the ACS endpoint is set using the IdP api this is not necessary. Use of the api overrides values set in AuthnRequests
+* Messages from the IDP are signed by default but this can be changed
+* FOr IDP initiated login, the SP entity id must be configured.
 
 The default Service Provider configuration is as follows:
 
@@ -74,6 +78,15 @@ The default Service Provider configuration is as follows:
 
 In this document you will find some examples for overriding the default configuration.
 After you override configuration you can go back to the default using the reset API.
+
+IDP Initiated Login
+-------------------
+
+After logging into the IDP, and configuring the SP Entity ID, you can trigger an IDP initiated
+login flow by navigating to http://idp:8000/SingleSignOnServiceIdp
+
+The relayState can be provided by appending ?relaystate=/whatever to the URL above.
+
 
 Build Mujina
 ---------------
@@ -184,7 +197,7 @@ curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
         -X PUT -d "http://www.w3.org/2000/09/xmldsig#rsa-sha1" \
         http://localhost:9090/api/signatureAlgorithm
-```        
+```
 
 Changing the signing credentials (Both IDP and SP)
 --------------------------------
@@ -302,16 +315,6 @@ curl -v -H "Accept: application/json" \
         http://localhost:8080/api/authmethod
 ```
 
-Setting the Assertion Consumer Service (ACS) endpoint
----------------------------------
-
-```bash
-curl -v -H "Accept: application/json" \
-        -H "Content-type: application/json" \
-        -X PUT -d "https://my_sp.no:443/acsendpoint_path" \
-        http://localhost:8080/api/acsendpoint
-```
-
 The authentication method API has two possible values.
 
 * USER
@@ -327,6 +330,42 @@ The USER setting requires a valid user to be known in Mujina's IdP and the ALL a
 
 The ALL setting allows any username and password combination.
 As a side effect, the urn:mace:dir:attribute-def:uid attribute is set to the username each time a user logs in.
+
+Setting the Assertion Consumer Service (ACS) endpoint
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "https://my_sp.no:443/acsendpoint_path" \
+        http://localhost:8080/api/acsendpoint
+```
+
+Setting the SP Entity Id
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "https://my_sp.no:443/saml/entityid" \
+        http://localhost:8080/api/spentityid
+```
+
+This API is only available on the IDP and is only needed in case of using IDP initiated login.
+
+Setting the Signed Message option
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "false" \
+        http://localhost:8080/api/signmessage
+```
+
+This API is only available on the IDP and is only used if you do not want the IDP to sign
+the AuthnResponse message in the case of IDP initiated login.
+
 
 Setting the SSO Service URL
 -------------

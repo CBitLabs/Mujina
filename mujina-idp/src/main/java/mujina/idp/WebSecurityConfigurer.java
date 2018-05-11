@@ -94,6 +94,40 @@ public class WebSecurityConfigurer extends WebMvcConfigurerAdapter {
   }
 
   @Bean
+  @Autowired
+  public SAMLMessageHandler samlMessageHandlerWithoutSigning(@Value("${idp.clock_skew}") int clockSkew,
+                                               @Value("${idp.expires}") int expires,
+                                               @Value("${idp.base_url}") String idpBaseUrl,
+                                               @Value("${idp.compare_endpoints}") boolean compareEndpoints,
+                                               IdpConfiguration idpConfiguration,
+                                               JKSKeyManager keyManager)
+    throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException, XMLParserException, URISyntaxException {
+    StaticBasicParserPool parserPool = new StaticBasicParserPool();
+    BasicSecurityPolicy securityPolicy = new BasicSecurityPolicy();
+    securityPolicy.getPolicyRules().addAll(Arrays.asList(new IssueInstantRule(clockSkew, expires),
+      new MessageReplayRule(new ReplayCache(new MapBasedStorageService(), 14400000))));
+
+    HTTPRedirectDeflateDecoder httpRedirectDeflateDecoder = new HTTPRedirectDeflateDecoder(parserPool);
+    HTTPPostDecoder httpPostDecoder = new HTTPPostDecoder(parserPool);
+    if (!compareEndpoints) {
+      URIComparator noopComparator = (uri1, uri2) -> true;
+      httpPostDecoder.setURIComparator(noopComparator);
+      httpRedirectDeflateDecoder.setURIComparator(noopComparator);
+    }
+
+    parserPool.initialize();
+    HTTPPostSimpleSignEncoder httpPostSimpleSignEncoder = new HTTPPostSimpleSignEncoder(VelocityFactory.getEngine(), "/templates/saml2-post-simplesign-binding.vm", false);
+
+    return new SAMLMessageHandler(
+      keyManager,
+      Arrays.asList(httpRedirectDeflateDecoder, httpPostDecoder),
+      httpPostSimpleSignEncoder,
+      new StaticSecurityPolicyResolver(securityPolicy),
+      idpConfiguration,
+      idpBaseUrl);
+  }
+
+  @Bean
   public static SAMLBootstrap sAMLBootstrap() {
     return new UpgradedSAMLBootstrap();
   }

@@ -82,6 +82,18 @@ public class IdpController extends SharedController {
     configuration().setAcsEndpoint(acsEndpoint);
   }
 
+  @PutMapping("/spentityid")
+  public void setSpEntityId(@RequestBody String spEntityId) {
+    LOG.info("Request to set SP Entity Id to {}", spEntityId);
+    configuration().setSpEntityId(spEntityId);
+  }
+
+  @PutMapping("/signmessage")
+  public void setSignMessage(@RequestBody String signMessage) {
+    LOG.info("Request to set SignMessage to {}", signMessage);
+    configuration().setSignMessage(!signMessage.equals("false"));
+  }
+
   private IdpConfiguration configuration() {
     return IdpConfiguration.class.cast(super.configuration);
   }

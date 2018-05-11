@@ -39,7 +39,16 @@ public class SsoController {
   private SAMLMessageHandler samlMessageHandler;
 
   @Autowired
+  private SAMLMessageHandler samlMessageHandlerWithoutSigning;
+
+  @Autowired
   private IdpConfiguration idpConfiguration;
+
+  @GetMapping("/SingleSignOnServiceIdp")
+  public void singleSignOnServiceIdpGet(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+    throws IOException, MarshallingException, SignatureException, MessageEncodingException, ValidationException, SecurityException, MessageDecodingException, MetadataProviderException {
+    doSSOIdp(request, response, authentication, false);
+  }
 
   @GetMapping("/SingleSignOnService")
   public void singleSignOnServiceGet(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
@@ -68,7 +77,31 @@ public class SsoController {
       assertionConsumerServiceURL,
       messageContext.getRelayState());
 
-    samlMessageHandler.sendAuthnResponse(principal, response);
+    if (idpConfiguration.isSignMessage()) {
+      samlMessageHandler.sendAuthnResponse(principal, response);
+    } else {
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response);
+    }
+  }
+
+  private void doSSOIdp(HttpServletRequest request, HttpServletResponse response, Authentication authentication, boolean postRequest) throws ValidationException, SecurityException, MessageDecodingException, MarshallingException, SignatureException, MessageEncodingException, MetadataProviderException {
+
+    String assertionConsumerServiceURL = idpConfiguration.getAcsEndpoint();
+
+    SAMLPrincipal principal = new SAMLPrincipal(
+      authentication.getName(),
+      authentication.getName().contains("@") ? NameIDType.EMAIL : NameIDType.UNSPECIFIED,
+      attributes(authentication.getName()),
+      idpConfiguration.getSpEntityId(),
+      null,
+      assertionConsumerServiceURL,
+      request.getParameter("relaystate"));
+
+    if (idpConfiguration.isSignMessage()) {
+      samlMessageHandler.sendAuthnResponse(principal, response);
+    } else {
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response);
+    }
   }
 
   private List<SAMLAttribute> attributes(String uid) {
