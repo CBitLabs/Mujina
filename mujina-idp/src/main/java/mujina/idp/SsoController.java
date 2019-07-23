@@ -79,6 +79,7 @@ public class SsoController {
     if (name.contains("==")) {
       String[] components = name.split("==", 2);
       nameidType = components[0];
+      name = components[1];
     }
 
     SAMLPrincipal principal = new SAMLPrincipal(
@@ -112,6 +113,7 @@ public class SsoController {
     if (name.contains("==")) {
       String[] components = name.split("==", 2);
       nameidType = components[0];
+      name = components[1];
     }
 
     SAMLPrincipal principal = new SAMLPrincipal(
