@@ -194,8 +194,15 @@ public class SAMLBuilder {
     XSStringBuilder stringBuilder = (XSStringBuilder) Configuration.getBuilderFactory().getBuilder(XSString.TYPE_NAME);
 
     Attribute attribute = buildSAMLObject(Attribute.class, Attribute.DEFAULT_ELEMENT_NAME);
-    attribute.setName(name);
-    attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:uri");
+    if (name.contains("==")) {
+      String components[] = name.split("==", 2);
+
+      attribute.setName(components[1]);
+      attribute.setNameFormat(components[0]);
+    } else {
+      attribute.setName(name);
+      attribute.setNameFormat("urn:oasis:names:tc:SAML:2.0:attrname-format:uri");
+    }
     List<XSString> xsStringList = values.stream().map(value -> {
       XSString stringValue = stringBuilder.buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
       stringValue.setValue(value);

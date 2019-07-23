@@ -77,7 +77,7 @@ public class SsoController {
     }
 
     if (name.contains("==")) {
-      String[] components = name.split("==", 1);
+      String[] components = name.split("==", 2);
       nameidType = components[0];
     }
 
@@ -110,7 +110,7 @@ public class SsoController {
     }
 
     if (name.contains("==")) {
-      String[] components = name.split("==", 1);
+      String[] components = name.split("==", 2);
       nameidType = components[0];
     }
 
