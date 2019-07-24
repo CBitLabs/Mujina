@@ -68,9 +68,23 @@ public class SsoController {
 
     String assertionConsumerServiceURL = idpConfiguration.getAcsEndpoint() != null ? idpConfiguration.getAcsEndpoint() : authnRequest.getAssertionConsumerServiceURL();
 
+    String name = authentication.getName();
+
+    String nameidType = NameIDType.UNSPECIFIED;
+
+    if (name.contains("@")) {
+      nameidType = NameIDType.EMAIL;
+    }
+
+    if (name.contains("==")) {
+      String[] components = name.split("==", 2);
+      nameidType = components[0];
+      name = components[1];
+    }
+
     SAMLPrincipal principal = new SAMLPrincipal(
-      authentication.getName(),
-      authentication.getName().contains("@") ? NameIDType.EMAIL : NameIDType.UNSPECIFIED,
+      name,
+      nameidType,
       attributes(authentication.getName()),
       authnRequest.getIssuer().getValue(),
       authnRequest.getID(),
@@ -88,9 +102,23 @@ public class SsoController {
 
     String assertionConsumerServiceURL = idpConfiguration.getAcsEndpoint();
 
+    String name = authentication.getName();
+
+    String nameidType = NameIDType.UNSPECIFIED;
+
+    if (name.contains("@")) {
+      nameidType = NameIDType.EMAIL;
+    }
+
+    if (name.contains("==")) {
+      String[] components = name.split("==", 2);
+      nameidType = components[0];
+      name = components[1];
+    }
+
     SAMLPrincipal principal = new SAMLPrincipal(
-      authentication.getName(),
-      authentication.getName().contains("@") ? NameIDType.EMAIL : NameIDType.UNSPECIFIED,
+      name,
+      nameidType,
       attributes(authentication.getName()),
       idpConfiguration.getSpEntityId(),
       null,
