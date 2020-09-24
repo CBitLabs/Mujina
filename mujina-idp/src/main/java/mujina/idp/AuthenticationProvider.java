@@ -21,20 +21,18 @@ public class AuthenticationProvider implements org.springframework.security.auth
   @Override
   public Authentication authenticate(Authentication authentication) throws AuthenticationException {
     if (idpConfiguration.getAuthenticationMethod().equals(ALL)) {
-      return new UsernamePasswordAuthenticationToken(authentication.getPrincipal(), authentication.getCredentials(), Arrays.asList(
-        new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER")
-      ));
+      return new FederatedUserAuthenticationToken(
+        authentication.getPrincipal(),
+        authentication.getCredentials(),
+        Arrays.asList(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("ROLE_USER")));
     } else {
       return idpConfiguration.getUsers().stream()
         .filter(token ->
           token.getPrincipal().equals(authentication.getPrincipal()) &&
             token.getCredentials().equals(authentication.getCredentials()))
-        .findFirst().map(usernamePasswordAuthenticationToken -> new UsernamePasswordAuthenticationToken(
-          //need top copy or else credentials are erased for future logins
-          usernamePasswordAuthenticationToken.getPrincipal(),
-          usernamePasswordAuthenticationToken.getCredentials(),
-          usernamePasswordAuthenticationToken.getAuthorities()
-        ))
+        .findFirst().map(userAuthenticationToken ->
+          //need to copy or else credentials are erased for future logins
+          userAuthenticationToken.clone())
         .orElseThrow(() -> new AuthenticationException("User not found or bad credentials") {
         });
     }

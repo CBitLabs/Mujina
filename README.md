@@ -16,15 +16,15 @@ Mujina
 [![Build Status](https://travis-ci.org/OpenConext/Mujina.svg)](https://travis-ci.org/OpenConext/Mujina)
 [![codecov.io](https://codecov.io/github/OpenConext/Mujina/coverage.svg)](https://codecov.io/github/OpenConext/Mujina)
 
-Mujina is a SAML2 Identity and Service Provider (IdP & SP). 
+Mujina is a SAML2 Identity and Service Provider (IdP & SP).
 
-Note that backward incompatibilities were introduced in version 5.0.0. If you want to migrate from pre-5 versions to the post-5 versions 
+Note that backward incompatibilities were introduced in version 5.0.0. If you want to migrate from pre-5 versions to the post-5 versions
 then the following has changed:
- 
+
 * We no longer use Tomcat, but standalone Spring boot applications
 * The API has changed for all end-points requiring a single value (e.g. String or boolean) and only that value is required in the request body. See the API documentation below.
- 
-Characteristics of both the IdP or SP can be runtime changed with the REST API. 
+
+Characteristics of both the IdP or SP can be runtime changed with the REST API.
 
 Mujina is used to test the SURFconext middleware which enables Dutch educational services to use cloud based SAAS-services.
 
@@ -38,10 +38,13 @@ Features
   * entityID
   * ACS endpoint
   * signature Algorithm
+  * whether the authnresponse message is signed
+  * whether the assertions are signed
+  * what entityid to use for the SP in IDP initiated login
 
 - A SAML2-compliant Service Provider. The SP displays the attributes as these were received from an IdP. The REST api allows for the manipulation of:
   * entityID
-  * signing certificate  
+  * signing certificate
   * SSO Service URL
   * signature Algorithm
 
@@ -65,6 +68,9 @@ The default Identity Provider configuration is as follows:
 * There is a default certificate and private key available
 * By default the ACS endpoint should be provided by the SP as an attribute in the AuthnRequest.
   If the ACS endpoint is set using the IdP api this is not necessary. Use of the api overrides values set in AuthnRequests
+* Messages from the IDP are signed by default but this can be changed
+* Assertions from the IDP are signed by default but this can be changed
+* FOr IDP initiated login, the SP entity id must be configured.
 
 The default Service Provider configuration is as follows:
 
@@ -75,6 +81,15 @@ The default Service Provider configuration is as follows:
 In this document you will find some examples for overriding the default configuration.
 After you override configuration you can go back to the default using the reset API.
 
+IDP Initiated Login
+-------------------
+
+After logging into the IDP, and configuring the SP Entity ID, you can trigger an IDP initiated
+login flow by navigating to http://idp:8000/SingleSignOnServiceIdp
+
+The relayState can be provided by appending ?relaystate=/whatever to the URL above.
+
+
 Build Mujina
 ---------------
 
@@ -83,7 +98,7 @@ Build Mujina
 The build dependencies are hosted on https://build.openconext.org/repository/public/
 (and will be fetched automatically by Maven).
 
-Run the IDP 
+Run the IDP
 -----------------------
 
 ```bash
@@ -121,7 +136,7 @@ The Java KeyStore expects a pkcs8 DER format for RSA private keys so we have to 
 ```bash
 openssl pkcs8 -nocrypt  -in mujina.pem -topk8 -out mujina.der
 ```
- 
+
 Remove the whitespace, heading and footer from the mujina.crt and mujina.der:
 
 ```bash
@@ -184,7 +199,7 @@ curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
         -X PUT -d "http://www.w3.org/2000/09/xmldsig#rsa-sha1" \
         http://localhost:9090/api/signatureAlgorithm
-```        
+```
 
 Changing the signing credentials (Both IDP and SP)
 --------------------------------
@@ -224,8 +239,20 @@ curl -v -H "Accept: application/json" \
         http://localhost:8080/api/signing-credential
 ```
 
+Adding a user
+-------------
+
+This API is only available on the IDP.
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d '{"name": "hacker", "password": "iamgod", "authorities": ["ROLE_USER", "ROLE_ADMIN"]}' \
+        http://localhost:8080/api/users
+```
+
 Setting attribute foo to bar (e.g. urn:mace:dir:attribute-def:foo to bar)
--------------------------------------------------------
+-------------------------------------------------------------------------
 
 This API is only available on the IDP. **Note:** An attribute is always a list.
 
@@ -235,6 +262,24 @@ curl -v -H "Accept: application/json" \
         -X PUT -d '["bar"]' \
         http://localhost:8080/api/attributes/urn:mace:dir:attribute-def:foo
 ```
+Or to test the UTF-8 encoding:
+```bash
+curl -v -H "Accept: application/json" -H "Content-type: application/json" -X PUT -d '["髙橋 大輔"]' https://mujina-idp.test2.surfconext.nl/api/attributes/urn:mace:dir:attribute-def:cn
+```
+
+Setting attribute for specific user
+-----------------------------------
+
+The call to set an attribute is global for all users. With this call you set an attribute for a specific user.
+This API is only available on the IDP. **Note:** The user must exists and will NOT be provisioned on the fly.
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d '["bar"]' \
+        http://localhost:8080/api/attributes/urn:mace:dir:attribute-def:foo/user
+```
+
 
 Removing an attribute
 ---------------------
@@ -248,16 +293,16 @@ curl -v -H "Accept: application/json" \
         http://localhost:8080/api/attributes/urn:mace:dir:attribute-def:foo
 ```
 
-Adding a user
--------------
+Removing an attribute for a user
+--------------------------------
 
 This API is only available on the IDP.
 
 ```bash
 curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
-        -X PUT -d '{"name": "hacker", "password": "iamgod", "authorities": ["ROLE_USER", "ROLE_ADMIN"]}' \
-        http://localhost:8080/api/users
+        -X DELETE \
+        http://localhost:8080/api/attributes/urn:mace:dir:attribute-def:foo/user
 ```
 
 Setting the authentication method
@@ -270,16 +315,6 @@ curl -v -H "Accept: application/json" \
         -H "Content-type: application/json" \
         -X PUT -d "ALL" \
         http://localhost:8080/api/authmethod
-```
-
-Setting the Assertion Consumer Service (ACS) endpoint
----------------------------------
-
-```bash
-curl -v -H "Accept: application/json" \
-        -H "Content-type: application/json" \
-        -X PUT -d "https://my_sp.no:443/acsendpoint_path" \
-        http://localhost:8080/api/acsendpoint
 ```
 
 The authentication method API has two possible values.
@@ -297,6 +332,56 @@ The USER setting requires a valid user to be known in Mujina's IdP and the ALL a
 
 The ALL setting allows any username and password combination.
 As a side effect, the urn:mace:dir:attribute-def:uid attribute is set to the username each time a user logs in.
+
+Setting the Assertion Consumer Service (ACS) endpoint
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "https://my_sp.no:443/acsendpoint_path" \
+        http://localhost:8080/api/acsendpoint
+```
+
+Setting the SP Entity Id
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "https://my_sp.no:443/saml/entityid" \
+        http://localhost:8080/api/spentityid
+```
+
+This API is only available on the IDP and is only needed in case of using IDP initiated login.
+
+Setting the Signed Message option
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "false" \
+        http://localhost:8080/api/signmessage
+```
+
+This API is only available on the IDP and is only used if you do not want the IDP to sign
+the AuthnResponse message. The default is to sign.
+
+
+Setting the Signed Assertions option
+---------------------------------
+
+```bash
+curl -v -H "Accept: application/json" \
+        -H "Content-type: application/json" \
+        -X PUT -d "false" \
+        http://localhost:8080/api/signassertion
+```
+
+This API is only available on the IDP and is only used if you do not want the IDP to sign
+the assertions in the AuthnResponse message. The default is to sign.
+
 
 Setting the SSO Service URL
 -------------

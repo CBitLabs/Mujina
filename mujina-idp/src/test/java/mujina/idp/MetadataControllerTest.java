@@ -1,7 +1,10 @@
 package mujina.idp;
 
 import mujina.AbstractIntegrationTest;
+
 import org.junit.Test;
+
+import java.util.Arrays;
 
 import static io.restassured.RestAssured.given;
 import static io.restassured.config.RestAssuredConfig.newConfig;
@@ -22,7 +25,9 @@ public class MetadataControllerTest extends AbstractIntegrationTest {
       .statusCode(SC_OK)
       .body(
         "EntityDescriptor.IDPSSODescriptor.SingleSignOnService.@Location",
-        equalTo("http://localhost:" + serverPort + "/SingleSignOnService"));
+        equalTo(Arrays.asList("http://localhost:" + serverPort + "/SingleSignOnService",
+            "http://localhost:" + serverPort + "/SingleSignOnService"))
+      );
   }
 
 }

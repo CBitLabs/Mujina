@@ -106,7 +106,7 @@ public class SAMLMessageHandler {
         SAMLConstants.SAML2_POST_BINDING_URI)));
   }
 
-  public void sendAuthnResponse(SAMLPrincipal principal, HttpServletResponse response) throws MarshallingException, SignatureException, MessageEncodingException {
+  public void sendAuthnResponse(SAMLPrincipal principal, HttpServletResponse response, boolean doSignAssertion) throws MarshallingException, SignatureException, MessageEncodingException {
     Status status = buildStatus(StatusCode.SUCCESS_URI);
 
     String entityId = idpConfiguration.getEntityId();
@@ -121,7 +121,9 @@ public class SAMLMessageHandler {
     authResponse.setInResponseTo(principal.getRequestID());
 
     Assertion assertion = buildAssertion(principal, status, entityId);
-    signAssertion(assertion, signingCredential);
+    if (doSignAssertion) {
+      signAssertion(assertion, signingCredential);
+    }
 
     authResponse.getAssertions().add(assertion);
     authResponse.setDestination(principal.getAssertionConsumerServiceURL());

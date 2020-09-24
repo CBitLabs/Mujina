@@ -24,7 +24,10 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
@@ -36,7 +39,16 @@ public class SsoController {
   private SAMLMessageHandler samlMessageHandler;
 
   @Autowired
+  private SAMLMessageHandler samlMessageHandlerWithoutSigning;
+
+  @Autowired
   private IdpConfiguration idpConfiguration;
+
+  @GetMapping("/SingleSignOnServiceIdp")
+  public void singleSignOnServiceIdpGet(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
+    throws IOException, MarshallingException, SignatureException, MessageEncodingException, ValidationException, SecurityException, MessageDecodingException, MetadataProviderException {
+    doSSOIdp(request, response, authentication, false);
+  }
 
   @GetMapping("/SingleSignOnService")
   public void singleSignOnServiceGet(HttpServletRequest request, HttpServletResponse response, Authentication authentication)
@@ -56,20 +68,79 @@ public class SsoController {
 
     String assertionConsumerServiceURL = idpConfiguration.getAcsEndpoint() != null ? idpConfiguration.getAcsEndpoint() : authnRequest.getAssertionConsumerServiceURL();
 
+    String name = authentication.getName();
+
+    String nameidType = NameIDType.UNSPECIFIED;
+
+    if (name.contains("@")) {
+      nameidType = NameIDType.EMAIL;
+    }
+
+    if (name.contains("==")) {
+      String[] components = name.split("==", 2);
+      nameidType = components[0];
+      name = components[1];
+    }
+
     SAMLPrincipal principal = new SAMLPrincipal(
-      authentication.getName(),
-      NameIDType.UNSPECIFIED,
+      name,
+      nameidType,
       attributes(authentication.getName()),
       authnRequest.getIssuer().getValue(),
       authnRequest.getID(),
       assertionConsumerServiceURL,
       messageContext.getRelayState());
 
-    samlMessageHandler.sendAuthnResponse(principal, response);
+    if (idpConfiguration.isSignMessage()) {
+      samlMessageHandler.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
+    } else {
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
+    }
+  }
+
+  private void doSSOIdp(HttpServletRequest request, HttpServletResponse response, Authentication authentication, boolean postRequest) throws ValidationException, SecurityException, MessageDecodingException, MarshallingException, SignatureException, MessageEncodingException, MetadataProviderException {
+
+    String assertionConsumerServiceURL = idpConfiguration.getAcsEndpoint();
+
+    String name = authentication.getName();
+
+    String nameidType = NameIDType.UNSPECIFIED;
+
+    if (name.contains("@")) {
+      nameidType = NameIDType.EMAIL;
+    }
+
+    if (name.contains("==")) {
+      String[] components = name.split("==", 2);
+      nameidType = components[0];
+      name = components[1];
+    }
+
+    SAMLPrincipal principal = new SAMLPrincipal(
+      name,
+      nameidType,
+      attributes(authentication.getName()),
+      idpConfiguration.getSpEntityId(),
+      null,
+      assertionConsumerServiceURL,
+      request.getParameter("relaystate"));
+
+    if (idpConfiguration.isSignMessage()) {
+      samlMessageHandler.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
+    } else {
+      samlMessageHandlerWithoutSigning.sendAuthnResponse(principal, response, idpConfiguration.isSignAssertion());
+    }
   }
 
   private List<SAMLAttribute> attributes(String uid) {
-    return idpConfiguration.getAttributes().entrySet().stream()
+    Map<String, List<String>> result = new HashMap<>();
+    result.putAll(idpConfiguration.getAttributes());
+
+    Optional<Map<String, List<String>>> optionalMap = idpConfiguration.getUsers().stream().filter(user -> user
+      .getPrincipal()
+      .equals(uid)).findAny().map(user -> user.getAttributes());
+    optionalMap.ifPresent(map -> result.putAll(map));
+    return result.entrySet().stream()
       .map(entry ->  entry.getKey().equals("urn:mace:dir:attribute-def:uid") ?
         new SAMLAttribute(entry.getKey(), singletonList(uid)) :
         new SAMLAttribute(entry.getKey(), entry.getValue()))

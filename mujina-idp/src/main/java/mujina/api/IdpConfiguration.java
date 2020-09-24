@@ -1,11 +1,10 @@
 package mujina.api;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.Setter;
+import mujina.idp.FederatedUserAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.stereotype.Component;
@@ -23,12 +22,15 @@ public class IdpConfiguration extends SharedConfiguration {
 
   private String defaultEntityId;
   private Map<String, List<String>> attributes = new TreeMap<>();
-  private List<UsernamePasswordAuthenticationToken> users = new ArrayList<>();
+  private List<FederatedUserAuthenticationToken> users = new ArrayList<>();
   private String acsEndpoint;
   private AuthenticationMethod authenticationMethod;
   private AuthenticationMethod defaultAuthenticationMethod;
   private final String idpPrivateKey;
   private final String idpCertificate;
+  private String spEntityId;
+  private boolean signMessage;
+  private boolean signAssertion;
 
   @Autowired
   public IdpConfiguration(JKSKeyManager keyManager,
@@ -52,15 +54,18 @@ public class IdpConfiguration extends SharedConfiguration {
     resetUsers();
     setAcsEndpoint(null);
     setAuthenticationMethod(this.defaultAuthenticationMethod);
+    setSpEntityId(null);
+    setSignMessage(true);
+    setSignAssertion(true);
     setSignatureAlgorithm(getDefaultSignatureAlgorithm());
   }
 
   private void resetUsers() {
     users.clear();
     users.addAll(Arrays.asList(
-      new UsernamePasswordAuthenticationToken("admin", "secret", Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"),
+      new FederatedUserAuthenticationToken("admin", "secret", Arrays.asList(new SimpleGrantedAuthority("ROLE_USER"),
         new SimpleGrantedAuthority("ROLE_ADMIN"))),
-      new UsernamePasswordAuthenticationToken("user", "secret", Arrays.asList(new SimpleGrantedAuthority("ROLE_USER")))));
+      new FederatedUserAuthenticationToken("user", "secret", Arrays.asList(new SimpleGrantedAuthority("ROLE_USER")))));
   }
 
   private void resetAttributes() {
